@@ -229,6 +229,8 @@ class KerasRandomSearch(object):
             raise ValueError("Param_grid must be in dict format")
         self.param_grid = self.param_grid.copy()
 
+        for p_key, p_value in self.param_grid.items():
+            self.param_grid[p_key] = _check_param(p_value)
         max_trials = np.prod([len(p) for p in self.param_grid.values()])
 
         start_score = -np.inf if self.greater else np.inf
