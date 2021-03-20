@@ -1,2 +1,2 @@
-# chaitun-keras
-Hyperparameter searcher for models created in keras
+# Chaitun Keras
+Hyperparameter searcher for models created in keras.
