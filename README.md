@@ -1,11 +1,13 @@
 # Chaitun Keras
-Hyperparameter searcher for models created in keras.
+```python
+import chaitunkeras as cht
+```
+
+Chaitun-Keras is a Python module to evaluate multiple Keras models using a grid search or a random search. It allows store of the results in text files and provides functions to easily inspect these results.
 
 ## KerasGridSearch
 
 ```python
-import chaitunkeras as cht
-
 param_grid = {
     'epochs':       100,
     'batch_size':   32,
@@ -21,5 +23,5 @@ kgs.save_trials('grid_search_trials.txt')
 ## KerasRandomSearch
 
 ## Main references
-* Sklearn
-* Kerashypetune
+* [Scikit-Learn](https://github.com/scikit-learn/scikit-learn)
+* [Keras-Hypetune](https://github.com/cerlymarco/keras-hypetune)
