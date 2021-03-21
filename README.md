@@ -5,7 +5,7 @@ import chaitunkeras as cht
 
 Chaitun-Keras is a Python module to evaluate multiple Keras models using a grid search or a random search. It allows store of the results in text files and provides functions to easily inspect these results.
 
-## KerasGridSearch
+### KerasGridSearch
 
 ```python
 param_grid = {
@@ -20,7 +20,7 @@ kgs.search(x_train, y_train, validation_data=(x_val, y_val))
 kgs.save_trials('grid_search_trials.txt')
 ```
 
-## KerasRandomSearch
+### KerasRandomSearch
 
 ```python
 param_grid = {
