@@ -240,7 +240,7 @@ class KerasRandomSearch(object):
         eval_score = np.max if self.greater else np.min
 
         if self.verbose == 1:
-            print(f"{self.n_trials} trials to do of {max_trials} options in the parameter grid")
+            print(f"{self.n_trials} trials to do from {max_trials} options in the parameter grid")
             verbose = fitargs['verbose'] if 'verbose' in fitargs.keys() else 1
         else:
             verbose = 0

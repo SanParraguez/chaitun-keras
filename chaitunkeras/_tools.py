@@ -93,28 +93,24 @@ class ParameterSampler(object):
         random.seed(seed)
 
         if all_lists:
-            param_combi = list(product(*self.param_distributions.values()))
-            grid_size = len(param_combi)
-
+            grid_size = np.prod([len(i) for i in self.param_distributions.values()])
             if grid_size < self.n_iter:
                 raise ValueError(
                     f"The total space of parameters {grid_size} is smaller "
                     f"than n_iter={self.n_iter}. Try with KerasGridSearch.")
-            param_combi = random.sample(param_combi, self.n_iter)
 
-        else:
-            param_combi = []
-            k = self.n_iter
-            for i in range(self.n_iter):
-                dist = self.param_distributions
-                params = []
-                for j, v in enumerate(dist.values()):
-                    if hasattr(v, "rvs"):
-                        params.append(v.rvs(random_state=seed * (k + j)))
-                    else:
-                        params.append(v[random.randint(0, len(v) - 1)])
-                    k += i + j
-                param_combi.append(tuple(params))
+        param_combi = []
+        k = self.n_iter
+        for i in range(self.n_iter):
+            dist = self.param_distributions
+            params = []
+            for j, v in enumerate(dist.values()):
+                if hasattr(v, "rvs"):
+                    params.append(v.rvs(random_state=seed * (k + j)))
+                else:
+                    params.append(v[random.randint(0, len(v) - 1)])
+                k += i + j
+            param_combi.append(tuple(params))
 
         # reset seed
         np.random.mtrand._rand
