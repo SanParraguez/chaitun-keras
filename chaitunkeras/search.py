@@ -94,11 +94,11 @@ class KerasGridSearch(object):
 
         fitargs['verbose'] = verbose
         tunable_fitargs = ['batch_size', 'epochs', 'steps_per_epoch', 'class_weight']
+        succ = 0
 
         for trial, param in enumerate(product(*self.param_grid.values())):
 
             param = dict(zip(self.param_grid.keys(), param))
-            model = self.hypermodel(param)
 
             fit_param = {k: v for k, v in param.items() if k in tunable_fitargs}
             all_fitargs = {**fitargs, **fit_param}
@@ -107,10 +107,12 @@ class KerasGridSearch(object):
                 print(f"===== Trial {trial+1}/{n_trials} =====")
 
             try:
+                model = self.hypermodel(param)
                 history = model.fit(x=x, y=y,
                                     validation_split=validation_split,
                                     validation_data=validation_data,
                                     **all_fitargs)
+                succ += 1
             except ResourceExhaustedError as err:
                 print(f"Resource Exhausted Error: {err}")
                 continue
@@ -135,7 +137,9 @@ class KerasGridSearch(object):
                 print(f"Score: {score} at epoch {epoch+1}")
 
         if self.verbose == 1:
-            print(f"---- Search completed ----\nBest score: {self.best_score}")
+            print(f"------ Search completed ------\n"
+                  f"Done {succ}/{n_trials} trainings successfully\n"
+                  f"Best score: {self.best_score}")
 
         return None
 
@@ -252,11 +256,11 @@ class KerasRandomSearch(object):
                               n_iter=self.n_trials)
 
         sampled_params = rs.sample()
+        succ = 0
 
         for trial, param in enumerate(sampled_params):
 
             param = dict(zip(self.param_grid.keys(), param))
-            model = self.hypermodel(param)
 
             fit_param = {k: v for k, v in param.items() if k in tunable_fitargs}
             all_fitargs = {**fitargs, **fit_param}
@@ -265,10 +269,12 @@ class KerasRandomSearch(object):
                 print(f"===== Trial {trial + 1}/{self.n_trials} =====")
 
             try:
+                model = self.hypermodel(param)
                 history = model.fit(x=x, y=y,
                                     validation_split=validation_split,
                                     validation_data=validation_data,
                                     **all_fitargs)
+                succ += 1
             except ResourceExhaustedError as err:
                 print(f"Resource Exhausted Error: {err}")
                 continue
@@ -293,7 +299,9 @@ class KerasRandomSearch(object):
                 print(f"Score: {score} at epoch {epoch + 1}")
 
         if self.verbose == 1:
-            print(f"---- Search completed ----\nBest score: {self.best_score}")
+            print(f"------ Search completed ------\n"
+                  f"Done {succ}/{self.n_trials} trainings successfully\n"
+                  f"Best score: {self.best_score}")
 
         return None
 
