@@ -32,7 +32,7 @@ param_grid = {
 
 krs = cht.KerasRandomSearch(create_model, param_grid, n_trials=2, monitor='val_loss', greater=False)
 krs.search(x_train, y_train, validation_data=(x_val, y_val))
-krs.save_trials('grid_search_trials.txt')
+krs.save_trials('random_search_trials.txt')
 ```
 
 ## Main references
