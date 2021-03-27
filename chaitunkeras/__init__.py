@@ -17,4 +17,4 @@ from .inspect import *
 
 print("Chaitun Keras v1.1 (03-2021)")
 
-# CHAITUN: from Mapuzungún, means "filter, strain"
+# CHAITUN: from Mapudungún, means "filter, strain"
