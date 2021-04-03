@@ -1,4 +1,4 @@
-# Chaitun Keras v1.1
+# Chaitun Keras v0.1
 ```python
 import chaitunkeras as cht
 ```
