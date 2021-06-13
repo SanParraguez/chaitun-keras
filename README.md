@@ -15,8 +15,8 @@ param_grid = {
     'optimizer':    ['Adam', 'RMSprop']
 }
 
-kgs = cht.KerasGridSearch(create_model, param_grid, monitor='val_loss', greater=False)
-kgs.search(x_train, y_train, validation_data=(x_val, y_val))
+kgs = cht.KerasGridSearch(create_model, param_grid, monitor='val_loss', mode='min', verbose=1)
+kgs.search(x_train, y_train, validation_data=(x_val, y_val), verbose=0)
 kgs.save_trials('grid_search_trials.txt')
 ```
 
@@ -30,11 +30,11 @@ param_grid = {
     'optimizer':    ['Adam', 'RMSprop']
 }
 
-krs = cht.KerasRandomSearch(create_model, param_grid, n_trials=2, monitor='val_loss', greater=False)
-krs.search(x_train, y_train, validation_data=(x_val, y_val))
+krs = cht.KerasRandomSearch(create_model, param_grid, n_trials=2, monitor='val_loss', mode='min', verbose=1)
+krs.search(x_train, y_train, validation_data=(x_val, y_val), verbose=0)
 krs.save_trials('random_search_trials.txt')
 ```
 
-## Main references
+### Main references
 * [Scikit-Learn](https://github.com/scikit-learn/scikit-learn)
 * [Keras-Hypetune](https://github.com/cerlymarco/keras-hypetune)
