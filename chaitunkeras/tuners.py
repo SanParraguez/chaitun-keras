@@ -13,11 +13,11 @@ Provides different searchers to perform an hyperparameter tune.
 """
 __all__ = ["KerasGridSearch", "KerasRandomSearch"]
 # ============= IMPORTS ===============
+import time
+import logging
 import numpy as np
-
 from itertools import product
-from tensorflow.python.framework.errors_impl import ResourceExhaustedError
-from ._tools import _check_param, _save_trials, ParameterSampler
+from .tools import _check_param, _save_trials, ParameterSampler
 # =================================================================================
 class KerasGridSearch(object):
     """
@@ -35,9 +35,9 @@ class KerasGridSearch(object):
         Hyperparameter options to use, must have the keys to create the model with the hypermodel function.
     monitor : str, default val_loss
         Variable to monitor when searching for the best model.
-    greater : bool, default False
-        Indicates if the quantity to monitor must be greater or not to be better.
-    tuner_verbose : int, default 1
+    mode : str, default 'auto'
+        'auto', 'min' or 'max'. Indicates if the quantity to monitor must be maximized or minimized to be better.
+    verbose : int, default 1
         0 or 1. Indicates if the tuner prints information during the training.
 
     """
@@ -45,14 +45,29 @@ class KerasGridSearch(object):
                  hypermodel,
                  param_grid,
                  monitor='val_loss',
-                 greater=False,
-                 tuner_verbose=1):
+                 mode='auto',
+                 verbose=1):
 
         self.hypermodel = hypermodel
         self.param_grid = param_grid
         self.monitor = monitor
-        self.greater = greater
-        self.verbose = tuner_verbose
+        self.verbose = verbose
+
+        if mode not in ['auto', 'min', 'max']:
+            logging.warning('Monitor mode %s is unknown, '
+                            'fallback to auto mode.', mode)
+            mode = 'auto'
+
+        if mode == 'min':
+            self.monitor_op = np.less
+        elif mode == 'max':
+            self.monitor_op = np.greater
+        else:
+            if 'acc' in self.monitor:
+                self.monitor_op = np.greater
+            else:
+                self.monitor_op = np.less
+
         self.trials = []
         self.scores = []
         self.best_params = None
@@ -88,35 +103,28 @@ class KerasGridSearch(object):
 
         if validation_data is None and validation_split == 0.0:
             raise ValueError("Must pass either validation data or a validation split")
-
         if not isinstance(self.param_grid, dict):
             raise ValueError("Param_grid must be in dict format")
-        self.param_grid = self.param_grid.copy()
 
+        self.param_grid = self.param_grid.copy()
         for p_key, p_value in self.param_grid.items():
             self.param_grid[p_key] = _check_param(p_value)
+
+        self.best_score = np.inf if self.monitor_op == np.less else -np.inf
+        eval_epoch = np.argmin if self.monitor_op == np.less else np.argmax
+
         n_trials = np.prod([len(p) for p in self.param_grid.values()])
-
-        start_score = -np.inf if self.greater else np.inf
-        self.best_score = start_score
-
-        eval_epoch = np.argmax if self.greater else np.argmin
-        eval_score = np.max if self.greater else np.min
-
         if self.verbose == 1:
-            print(f"{n_trials} trials detected for parameter grid")
-            verbose = fitargs['verbose'] if 'verbose' in fitargs.keys() else 1
-        else:
-            verbose = 0
+            print(f"============ Starting grid search ============\n"
+                  f"> {n_trials} trials detected from parameter grid\n")
 
-        fitargs['verbose'] = verbose
         tunable_fitargs = ['batch_size', 'epochs', 'steps_per_epoch', 'class_weight']
+        early_stop = next((c for c in fitargs.get('callbacks', []) if hasattr(c, 'patience')), None)
         succ = 0
-
+        # ----- Initiate search -----
         for trial, param in enumerate(product(*self.param_grid.values())):
 
             param = dict(zip(self.param_grid.keys(), param))
-
             fit_param = {k: v for k, v in param.items() if k in tunable_fitargs}
             all_fitargs = {**fitargs, **fit_param}
 
@@ -124,37 +132,47 @@ class KerasGridSearch(object):
                 print(f"===== Trial {trial+1}/{n_trials} =====")
 
             try:
+                timit = time.time()
                 model = self.hypermodel(param)
                 history = model.fit(x=x, y=y,
                                     validation_split=validation_split,
                                     validation_data=validation_data,
                                     **all_fitargs)
+                train_time = (time.time() - timit)/60
                 succ += 1
-            except ResourceExhaustedError as err:
-                print(f"Resource Exhausted Error: {err}")
+            except Exception as err:
+                print(f"Exception raised: {err}")
                 continue
 
-            epoch = eval_epoch(history.history[self.monitor])
+            if early_stop:
+                if early_stop.restore_best_weights:
+                    if early_stop.stopped_epoch != 0:
+                        epoch = early_stop.stopped_epoch - early_stop.patience
+                    else:
+                        epoch = eval_epoch(history.history[early_stop.monitor])
+                        model.set_weights(early_stop.best_weights)
+                else:
+                    epoch = len(history.history[self.monitor]) - 1
+            else:
+                epoch = len(history.history[self.monitor]) - 1
+
             score = np.float32(history.history[self.monitor][epoch])
-            param['epochs'] = epoch + 1
             param['score'] = score
+            param['epochs'] = epoch + 1
+            param['loss'] = np.float32(history.history['val_loss'][epoch])
+            param['time'] = train_time
 
-            best_score = eval_score([self.best_score, score])
-
-            if self.best_score != best_score:
+            if self.monitor_op(score, self.best_score):
                 self.best_params = param
                 self.best_model = model
                 self.best_history = history.history
-                self.best_score = best_score
+                self.best_score = score
 
             self.trials.append(param)
             self.scores.append(score)
 
-            if self.verbose == 1:
-                print(f"Score: {score} at epoch {epoch+1}")
-
         if self.verbose == 1:
-            print(f"------ Search completed ------\n"
+            print(f"========== Search completed ==========\n"
                   f"Done {succ}/{n_trials} trainings successfully\n"
                   f"Best score: {self.best_score}")
 
@@ -191,9 +209,9 @@ class KerasRandomSearch(object):
         Number of trials to do from the grid.
     monitor : str, default val_loss
         Variable to monitor when searching for the best model.
-    greater : bool, default False
-        Indicates if the quantity to monitor must be greater or not to be better.
-    tuner_verbose : int, default 1
+    mode : str, default 'auto'
+        'auto', 'min' or 'max'. Indicates if the quantity to monitor must be maximized or minimized to be better.
+    verbose : int, default 1
         0 or 1. Indicates if the tuner prints information during the training.
 
     """
@@ -202,15 +220,30 @@ class KerasRandomSearch(object):
                  param_grid,
                  n_trials,
                  monitor='val_loss',
-                 greater=False,
-                 tuner_verbose=1):
+                 mode='auto',
+                 verbose=1):
 
         self.hypermodel = hypermodel
         self.param_grid = param_grid
         self.n_trials = n_trials
         self.monitor = monitor
-        self.greater = greater
-        self.verbose = tuner_verbose
+        self.verbose = verbose
+
+        if mode not in ['auto', 'min', 'max']:
+            logging.warning('Monitor mode %s is unknown, '
+                            'fallback to auto mode.', mode)
+            mode = 'auto'
+
+        if mode == 'min':
+            self.monitor_op = np.less
+        elif mode == 'max':
+            self.monitor_op = np.greater
+        else:
+            if 'acc' in self.monitor:
+                self.monitor_op = np.greater
+            else:
+                self.monitor_op = np.less
+
         self.trials = []
         self.scores = []
         self.best_params = None
@@ -245,40 +278,33 @@ class KerasRandomSearch(object):
         """
         if validation_data is None and validation_split == 0.0:
             raise ValueError("Must pass either validation data or a validation split")
-
         if not isinstance(self.param_grid, dict):
             raise ValueError("Param_grid must be in dict format")
-        self.param_grid = self.param_grid.copy()
 
+        self.param_grid = self.param_grid.copy()
         for p_key, p_value in self.param_grid.items():
             self.param_grid[p_key] = _check_param(p_value)
+
+        self.best_score = np.inf if self.monitor_op == np.less else -np.inf
+        eval_epoch = np.argmin if self.monitor_op == np.less else np.argmax
+
         max_trials = np.prod([len(p) for p in self.param_grid.values()])
-
-        start_score = -np.inf if self.greater else np.inf
-        self.best_score = start_score
-
-        eval_epoch = np.argmax if self.greater else np.argmin
-        eval_score = np.max if self.greater else np.min
-
         if self.verbose == 1:
-            print(f"{self.n_trials} trials to do from {max_trials} options in the parameter grid")
-            verbose = fitargs['verbose'] if 'verbose' in fitargs.keys() else 1
-        else:
-            verbose = 0
+            print(f"============ Starting random search ============\n"
+                  f"{self.n_trials} trials to do from {max_trials} options in the parameter grid")
 
-        fitargs['verbose'] = verbose
         tunable_fitargs = ['batch_size', 'epochs', 'steps_per_epoch', 'class_weight']
+        early_stop = next((c for c in fitargs.get('callbacks', []) if hasattr(c, 'patience')), None)
+        succ = 0
 
         rs = ParameterSampler(param_distributions=self.param_grid,
                               n_iter=self.n_trials)
-
         sampled_params = rs.sample()
-        succ = 0
 
+        # ----- Initiate search -----
         for trial, param in enumerate(sampled_params):
 
             param = dict(zip(self.param_grid.keys(), param))
-
             fit_param = {k: v for k, v in param.items() if k in tunable_fitargs}
             all_fitargs = {**fitargs, **fit_param}
 
@@ -286,37 +312,47 @@ class KerasRandomSearch(object):
                 print(f"===== Trial {trial + 1}/{self.n_trials} =====")
 
             try:
+                timit = time.time()
                 model = self.hypermodel(param)
                 history = model.fit(x=x, y=y,
                                     validation_split=validation_split,
                                     validation_data=validation_data,
                                     **all_fitargs)
+                train_time = (time.time() - timit) / 60
                 succ += 1
-            except ResourceExhaustedError as err:
-                print(f"Resource Exhausted Error: {err}")
+            except Exception as err:
+                print(f"Exception raised: {err}")
                 continue
 
-            epoch = eval_epoch(history.history[self.monitor])
+            if early_stop:
+                if early_stop.restore_best_weights:
+                    if early_stop.stopped_epoch != 0:
+                        epoch = early_stop.stopped_epoch - early_stop.patience
+                    else:
+                        epoch = eval_epoch(history.history[early_stop.monitor])
+                        model.set_weights(early_stop.best_weights)
+                else:
+                    epoch = len(history.history[self.monitor]) - 1
+            else:
+                epoch = len(history.history[self.monitor]) - 1
+
             score = np.float32(history.history[self.monitor][epoch])
-            param['epochs'] = epoch + 1
             param['score'] = score
+            param['epochs'] = epoch + 1
+            param['loss'] = np.float32(history.history['val_loss'][epoch])
+            param['time'] = train_time
 
-            best_score = eval_score([self.best_score, score])
-
-            if self.best_score != best_score:
+            if self.monitor_op(score, self.best_score):
                 self.best_params = param
                 self.best_model = model
                 self.best_history = history.history
-                self.best_score = best_score
+                self.best_score = score
 
             self.trials.append(param)
             self.scores.append(score)
 
-            if self.verbose == 1:
-                print(f"Score: {score} at epoch {epoch + 1}")
-
         if self.verbose == 1:
-            print(f"------ Search completed ------\n"
+            print(f"========== Search completed ==========\n"
                   f"Done {succ}/{self.n_trials} trainings successfully\n"
                   f"Best score: {self.best_score}")
 

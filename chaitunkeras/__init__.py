@@ -15,6 +15,6 @@ It allows to generate text files where the tests performed with their respective
 from .tuners import *
 from .inspect import *
 
-print("Chaitun Keras v0.1 (03-2021)")
+print("Chaitun Keras v0.2 (06-2021)")
 
 # CHAITUN: from Mapudungún, means "filter, strain"

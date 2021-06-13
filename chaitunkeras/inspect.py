@@ -30,8 +30,8 @@ class TrialsInspector(object):
 
         self.path = file_path
         self.df = pd.read_csv(file_path, sep=' ', index_col=False)
-        self.columns = self.df.columns.to_list()
         self.df = self.df.sort_values('score', ascending=True)
+        self.columns = self.df.columns.to_list()
 
         pd.set_option('display.max_columns', None)
 
