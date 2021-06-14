@@ -15,6 +15,9 @@ Chaitun-Keras is a Python module to evaluate multiple Keras models using a grid 
 More compatibility testing will be done in the future
 
 ----------
+
+To use both GridSearch and RandomSearch it is necessary to write a ``create_model`` function that receives a dictionary with parameters to create the model as input and returns a keras model already compiled.
+
 ### KerasGridSearch
 
 ```python
@@ -43,6 +46,22 @@ param_grid = {
 krs = cht.KerasRandomSearch(create_model, param_grid, n_trials=2, monitor='val_loss', mode='min', verbose=1)
 krs.search(x_train, y_train, validation_data=(x_val, y_val), verbose=0)
 krs.save_trials('random_search_trials.txt')
+```
+
+### TrialsInspector
+
+```python
+stats = {
+    'score_mean':  ('score', 'mean'),
+    'score_std':   ('score', 'std'),
+    'score_min':   ('score', 'min'),
+    'score_max':   ('score', 'max'),
+    'epochs_mean': ('epochs', 'mean'),
+    'count':       ('score', 'count')
+}
+
+trials = cht.TrialsInspector('grid_search_trials.txt')
+df = trials.get_uniques(stats)
 ```
 
 ### Main references
