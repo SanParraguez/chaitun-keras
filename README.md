@@ -2,8 +2,8 @@
 
 ![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/SanParraguez/chaitun-keras?include_prereleases)
 ![GitHub last commit](https://img.shields.io/github/last-commit/SanParraguez/chaitun-keras)
-![GitHub](https://img.shields.io/github/license/SanParraguez/chaitun-keras)
-![GitHub All Releases](https://img.shields.io/github/downloads/SanParraguez/chaitun-keras/total)
+![GitHub license](https://img.shields.io/github/license/SanParraguez/chaitun-keras)
+![GitHub downloads](https://img.shields.io/github/downloads/SanParraguez/chaitun-keras/total)
 
 ```python
 import chaitunkeras as cht
