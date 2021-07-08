@@ -53,8 +53,11 @@ krs = cht.KerasRandomSearch(create_model, param_grid, n_trials=2, monitor='val_l
 krs.search(x_train, y_train, validation_data=(x_val, y_val), verbose=0)
 krs.save_trials('random_search_trials.txt')
 ```
+----------
 
 ### TrialsInspector
+
+The TrialsInspector class allows you to review the trials performed, allowing to obtain statistics of the combinations performed more than once.
 
 ```python
 stats = {
