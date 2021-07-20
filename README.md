@@ -66,7 +66,9 @@ stats = {
     'score_min':   ('score', 'min'),
     'score_max':   ('score', 'max'),
     'epochs_mean': ('epochs', 'mean'),
-    'count':       ('score', 'count')
+    'count':       ('score', 'count'),
+    'loss_mean':   ('loss', 'mean'),
+    'time_mean':   ('time', 'mean')
 }
 
 trials = cht.TrialsInspector('grid_search_trials.txt')
