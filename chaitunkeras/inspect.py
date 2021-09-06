@@ -76,19 +76,23 @@ class TrialsInspector(object):
         pd.DataFrame with unique values and new stats calculated.
 
         """
+        heads = self.df.columns.to_list()
+        to_remove = ['score', 'epochs', 'time'] + heads[heads.index('loss'):]
+
         if stats is None:
             stats = {
                 'score_mean':  ('score', 'mean'),
                 'score_std':   ('score', 'std'),
+                'score_min':   ('score', 'min'),
+                'score_max':   ('score', 'max'),
                 'epochs_mean': ('epochs', 'mean'),
-                'count':       ('score', 'count')
+                'count':       ('score', 'count'),
+                'time_mean':   ('time', 'mean')
             }
+            stats.update({m + '_mean': (m, 'mean') for m in heads[heads.index('loss'):]})
         assert type(stats) is dict
 
-        heads = self.df.columns.to_list()
-        to_remove = ['score', 'epochs']
         heads = [key for key in heads if key not in to_remove]
-
         df_uniques = self.df.groupby(heads, as_index=False).agg(**stats)
 
         if 'score_mean' in df_uniques.keys():

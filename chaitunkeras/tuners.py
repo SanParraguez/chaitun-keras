@@ -63,10 +63,7 @@ class KerasGridSearch(object):
         elif mode == 'max':
             self.monitor_op = np.greater
         else:
-            if 'acc' in self.monitor:
-                self.monitor_op = np.greater
-            else:
-                self.monitor_op = np.less
+            self.monitor_op = np.greater if 'acc' in self.monitor else np.less
 
         self.trials = []
         self.scores = []
@@ -150,7 +147,6 @@ class KerasGridSearch(object):
                         epoch = early_stop.stopped_epoch - early_stop.patience
                     else:
                         epoch = eval_epoch(history.history[early_stop.monitor])
-                        model.set_weights(early_stop.best_weights)
                 else:
                     epoch = len(history.history[self.monitor]) - 1
             else:
@@ -158,9 +154,11 @@ class KerasGridSearch(object):
 
             score = np.float32(history.history[self.monitor][epoch])
             param['score'] = score
+            param['max_epochs'] = param.pop('epochs', epoch+1)
             param['epochs'] = epoch + 1
-            param['loss'] = np.float32(history.history['val_loss'][epoch])
             param['time'] = train_time
+            for k in [key for key in history.history.keys() if 'val' in key]:
+                param['_'.join(k.split('_')[1:])] = np.float32(history.history[k][epoch])
 
             if self.monitor_op(score, self.best_score):
                 self.best_params = param
@@ -330,7 +328,6 @@ class KerasRandomSearch(object):
                         epoch = early_stop.stopped_epoch - early_stop.patience
                     else:
                         epoch = eval_epoch(history.history[early_stop.monitor])
-                        model.set_weights(early_stop.best_weights)
                 else:
                     epoch = len(history.history[self.monitor]) - 1
             else:
@@ -338,9 +335,11 @@ class KerasRandomSearch(object):
 
             score = np.float32(history.history[self.monitor][epoch])
             param['score'] = score
+            param['max_epochs'] = param.pop('epochs', epoch+1)
             param['epochs'] = epoch + 1
-            param['loss'] = np.float32(history.history['val_loss'][epoch])
             param['time'] = train_time
+            for k in [key for key in history.history.keys() if 'val' in key]:
+                param['_'.join(k.split('_')[1:])] = np.float32(history.history[k][epoch])
 
             if self.monitor_op(score, self.best_score):
                 self.best_params = param

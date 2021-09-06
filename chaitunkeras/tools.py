@@ -28,7 +28,6 @@ def _check_param(values) -> object:
     -------
     list of checked parameters.
     """
-
     if isinstance(values, (list, tuple, np.ndarray)):
         return list(set(values))
     elif hasattr(values, 'rvs'):
@@ -48,7 +47,6 @@ def _save_trials(trials, path) -> None:
     path: str
         Indicates the path of the text file.
     """
-
     if not trials:
         print(f"No trials to save. Use the method 'search' before.")
         return None
@@ -99,7 +97,6 @@ class ParameterSampler(object):
         function calls.
     """
     def __init__(self, param_distributions, n_iter, random_state=None):
-
         self.n_iter = n_iter
         self.random_state = random_state
         self.param_distributions = param_distributions
