@@ -15,5 +15,5 @@ It allows to generate text files where the tests performed with their respective
 from .tuners import *
 from .inspect import *
 
-print('Chaitun Keras v0.3 (09-2021)\n'
-      'CHAITUN: from Mapuzungún, means "filter, strain"')
+print('Chaitun-Keras v0.3 (09-2021)\n'
+      'CHAITUN: from Mapuzungún, means "filter, strain".')
