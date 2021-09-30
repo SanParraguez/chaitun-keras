@@ -110,7 +110,7 @@ class KerasGridSearch(object):
         self.best_score = np.inf if self.monitor_op == np.less else -np.inf
         eval_epoch = np.argmin if self.monitor_op == np.less else np.argmax
 
-        n_trials = np.prod([len(p) for p in self.param_grid.values()])
+        n_trials = np.prod([len(p) for p in self.param_grid.values()], dtype=np.int64)
         if self.verbose == 1:
             print(f"============ Starting grid search ============\n"
                   f"> {n_trials} trials detected from parameter grid\n")
@@ -286,7 +286,7 @@ class KerasRandomSearch(object):
         self.best_score = np.inf if self.monitor_op == np.less else -np.inf
         eval_epoch = np.argmin if self.monitor_op == np.less else np.argmax
 
-        max_trials = np.prod([len(p) for p in self.param_grid.values()])
+        max_trials = np.prod([len(p) for p in self.param_grid.values()], dtype=np.int64)
         if self.verbose == 1:
             print(f"============ Starting random search ============\n"
                   f"{self.n_trials} trials to do from {max_trials} options in the parameter grid")

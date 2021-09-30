@@ -125,7 +125,7 @@ class ParameterSampler(object):
         random.seed(seed)
 
         if all_lists:
-            grid_size = np.prod([len(i) for i in self.param_distributions.values()])
+            grid_size = np.prod([len(i) for i in self.param_distributions.values()], dtype=np.int64)
             if grid_size < self.n_iter:
                 raise ValueError(
                     f"The total space of parameters {grid_size} is smaller "
